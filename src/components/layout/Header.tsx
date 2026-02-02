@@ -68,7 +68,10 @@ export function Header() {
                         {/* Profile with Click Dropdown */}
                         <div className="relative">
                             <button
-                                onClick={() => setIsMobileMenuOpen((prev) => !prev ? false : false) || setIsProfileOpen(!isProfileOpen)}
+                                onClick={() => {
+                                    setIsMobileMenuOpen(false);
+                                    setIsProfileOpen(!isProfileOpen);
+                                }}
                                 className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-muted transition-colors border border-transparent hover:border-border outline-none focus:ring-2 focus:ring-primary/20"
                             >
                                 {/* User Name */}
