@@ -29,7 +29,8 @@ export function PostProjectModal({ isOpen, onClose, onSuccess }: PostProjectModa
                 title: postForm.title,
                 description: postForm.description,
                 budget: parseFloat(postForm.budget) || 0,
-                skills
+                skills,
+                category: "General" // Default category
             });
 
             if (result.success) {

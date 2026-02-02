@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getConversations, getMessages, sendMessage } from "@/lib/actions/messaging";
 import { useUser } from "@/context/UserContext";
@@ -11,7 +11,7 @@ type Conversation = {
     id: string;
     lastMessage?: { content: string; createdAt: Date };
     updatedAt: Date;
-    otherUser: { id: string; name: string; avatarUrl?: string };
+    otherUser: { id?: string; name: string; avatarUrl?: string };
 };
 
 type Message = {
@@ -22,7 +22,7 @@ type Message = {
     isMine: boolean;
 };
 
-export default function MessagesPage() {
+function MessagesContent() {
     const { user } = useUser();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -93,13 +93,15 @@ export default function MessagesPage() {
 
     const handleSelectConversation = (conv: Conversation) => {
         setActiveConvId(conv.id);
-        setActiveReceiverId(conv.otherUser.id);
+        setActiveReceiverId(conv.otherUser.id || null);
         loadMessages(conv.id);
 
         // update url without reload
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("userId", conv.otherUser.id);
-        window.history.replaceState(null, "", `?${params.toString()}`);
+        if (conv.otherUser.id) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("userId", conv.otherUser.id);
+            window.history.replaceState(null, "", `?${params.toString()}`);
+        }
     };
 
     const handleSend = async () => {
@@ -285,5 +287,14 @@ export default function MessagesPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <MessagesContent />
+        </Suspense>
     );
 }

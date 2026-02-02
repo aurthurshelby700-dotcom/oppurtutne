@@ -135,6 +135,26 @@ export default function ProfilePage() {
         await loadProfile();
     }, [loadProfile]);
 
+    const handleRemoveAvatar = useCallback(async () => {
+        // Optimistic update
+        setProfile(prev => prev ? { ...prev, avatar_url: undefined } : null);
+
+        await updateUserProfile({ avatar_url: undefined });
+
+        // Re-fetch to ensure sync
+        await loadProfile();
+    }, [loadProfile]);
+
+    const handleRemoveCover = useCallback(async () => {
+        // Optimistic update
+        setProfile(prev => prev ? { ...prev, cover_url: undefined } : null);
+
+        await updateUserProfile({ cover_url: undefined });
+
+        // Re-fetch to ensure sync
+        await loadProfile();
+    }, [loadProfile]);
+
     const handleSave = async () => {
         const skills = editForm.skillsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
         await updateUserProfile({

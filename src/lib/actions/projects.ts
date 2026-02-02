@@ -100,7 +100,7 @@ export async function getMyProjects() {
         ];
 
         // Sort combined list by createdAt desc
-        combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        combined.sort((a, b) => new Date((b as any).createdAt).getTime() - new Date((a as any).createdAt).getTime());
 
         // Sanitize
         const sanitizedProjects = combined.map(item => ({

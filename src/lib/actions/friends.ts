@@ -120,7 +120,7 @@ export async function markRequestAsRead(requestId: string) {
     }
 }
 
-export async function getFriendshipStatus(targetUserId: string) {
+export async function getFriendshipStatus(targetUserId: string): Promise<"friends" | "sent" | "received" | "none" | { status: "received", requestId: string } | null> {
     const session = await auth();
     if (!session || !session.user || !session.user.id) {
         return null; // Treat as no relation
@@ -145,7 +145,7 @@ export async function getFriendshipStatus(targetUserId: string) {
             status: "pending",
         });
 
-        if (incomingRequest) return { status: "received", requestId: incomingRequest._id.toString() };
+        if (incomingRequest) return { status: "received" as const, requestId: incomingRequest._id.toString() };
 
         // 3. Check for pending outgoing request
         const outgoingRequest = await FriendRequest.findOne({

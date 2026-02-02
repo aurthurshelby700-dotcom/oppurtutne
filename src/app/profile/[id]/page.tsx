@@ -198,10 +198,10 @@ export default async function PublicProfilePage(props: { params: Promise<{ id: s
                             <div className="bg-card border border-border rounded-xl p-5 shadow-sm sticky top-24">
                                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Verifications</h3>
                                 <div className="grid grid-cols-4 gap-3 pb-4 border-b border-border">
-                                    <VerificationIcon type="identity" icon={ShieldCheck} isVerified={MOCK_EXTENDED_DATA.verification.identity} label="Identity" />
-                                    <VerificationIcon type="email" icon={Mail} isVerified={MOCK_EXTENDED_DATA.verification.email} label="Email" />
-                                    <VerificationIcon type="phone" icon={Smartphone} isVerified={MOCK_EXTENDED_DATA.verification.phone} label="Phone" />
-                                    <VerificationIcon type="payment" icon={CreditCard} isVerified={MOCK_EXTENDED_DATA.verification.payment} label="Payment" />
+                                    <VerificationIcon icon={ShieldCheck} isVerified={MOCK_EXTENDED_DATA.verification.identity} label="Identity" />
+                                    <VerificationIcon icon={Mail} isVerified={MOCK_EXTENDED_DATA.verification.email} label="Email" />
+                                    <VerificationIcon icon={Smartphone} isVerified={MOCK_EXTENDED_DATA.verification.phone} label="Phone" />
+                                    <VerificationIcon icon={CreditCard} isVerified={MOCK_EXTENDED_DATA.verification.payment} label="Payment" />
                                 </div>
                                 <div className="mt-4 pt-2 text-center">
                                     <span className="text-xs text-muted-foreground block">Member since {new Date(profile.created_at || Date.now()).getFullYear()}</span>
