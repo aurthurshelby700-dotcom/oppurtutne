@@ -28,7 +28,7 @@ function MessagesContent() {
     const router = useRouter();
 
     // State
-    const [conversations, setConversations] = useState<IConversation[]>([]);
+    const [conversations, setConversations] = useState<any[]>([]);
     const [activeConvId, setActiveConvId] = useState<string | null>(null);
     const [activeReceiverId, setActiveReceiverId] = useState<string | null>(searchParams.get("userId"));
     const [messages, setMessages] = useState<Message[]>([]);
