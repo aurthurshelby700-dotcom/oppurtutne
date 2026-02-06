@@ -17,6 +17,8 @@ import {
     ListTodo,
     ScrollText
 } from "lucide-react";
+import { ScrollContainer } from "@/components/ui/ScrollContainer";
+
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
@@ -42,22 +44,22 @@ export function Sidebar({ className }: { className?: string }) {
             visible: true
         },
         {
-            label: "My Services",
-            href: "/my-services",
-            icon: Briefcase,
-            visible: activeMode === "freelancer"
-        },
-        {
             label: "My Projects",
             href: "/my-projects",
             icon: Folder,
             visible: activeMode === "client"
         },
         {
-            label: "To-Do List",
+            label: "My Services",
+            href: "/my-services",
+            icon: Briefcase,
+            visible: activeMode === "freelancer"
+        },
+        {
+            label: "To Do List",
             href: "/todo",
             icon: ListTodo,
-            visible: true
+            visible: activeMode === "freelancer"
         },
         {
             label: "Saved",
@@ -71,30 +73,38 @@ export function Sidebar({ className }: { className?: string }) {
             icon: ScrollText,
             visible: true
         },
+        {
+            label: "Terms & Conditions",
+            href: "/terms",
+            icon: ScrollText,
+            visible: true
+        },
     ];
 
     return (
-        <aside className={cn("w-64 border-r border-border bg-card flex flex-col h-[calc(100vh-4rem)] sticky top-16 hidden md:flex", className)}>
-            <div className="flex-1 py-6 px-4 space-y-2">
-                {navItems.filter(item => item.visible).map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
-                                isActive
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                            )}
-                        >
-                            <item.icon className="h-5 w-5" />
-                            {item.label}
-                        </Link>
-                    );
-                })}
-            </div>
+        <aside className={cn("w-64 border-r border-border bg-card flex flex-col h-full hidden md:flex", className)}>
+            <ScrollContainer className="flex-1">
+                <div className="py-6 px-4 space-y-2">
+                    {navItems.filter(item => item.visible).map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                                    isActive
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                            >
+                                <item.icon className="h-5 w-5" />
+                                {item.label}
+                            </Link>
+                        );
+                    })}
+                </div>
+            </ScrollContainer>
 
             <div className="p-4 border-t border-border mt-auto">
                 <p className="text-xs text-muted-foreground text-center">

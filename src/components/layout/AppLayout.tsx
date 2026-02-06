@@ -3,9 +3,12 @@
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { isFullViewOpen, closeFullView, markAllAsRead, markAsRead } = useNotifications();
     const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/signup") || pathname?.startsWith("/onboarding");
 
     if (isAuthPage) {
@@ -15,12 +18,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <Header />
-            <div className="flex flex-1 max-w-[1920px] mx-auto w-full">
+            <div className="flex flex-1 w-full h-[calc(100vh-4rem)] overflow-hidden">
                 <Sidebar />
-                <main className="flex-1 w-full animate-in fade-in duration-500">
+                <div className="flex-1 min-w-0 animate-in fade-in duration-500 overflow-hidden">
                     {children}
-                </main>
+                </div>
             </div>
+
+            <NotificationCenter
+                isOpen={isFullViewOpen}
+                onClose={closeFullView}
+                onMarkAllRead={markAllAsRead}
+                onRead={markAsRead}
+            />
         </>
     );
 }

@@ -2,42 +2,13 @@
 
 import Link from "next/link";
 import { Lock, Mail } from "lucide-react";
-import { useState } from "react";
+import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/actions/auth";
 
 export default function LoginPage() {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-
-        const formData = new FormData(e.currentTarget);
-        try {
-            const errorMsg = await loginUser(undefined, formData);
-            if (errorMsg) {
-                setError(errorMsg);
-            } else {
-                // Success is actually a redirect, so this might not be reached if successful
-                // But if it returns void/undefined it might mean success in some contexts, but signIn redirects on server
-                // However, we are calling a server action that calls signIn.
-                // It should have redirected. If we are here, something passed but no redirect?
-            }
-        } catch (err) {
-            // NextAuth signIn redirect throws an error, we need to let it bubble if it's NEXT_REDIRECT
-            // But loginUser catches it? No, loginUser rethrows unknown errors.
-            // Wait, I designed loginUser to return string on error. 
-            // If it succeeds, it throws Redirect.
-            // So we shouldn't act here if it succeeds.
-            // Actually, if we use client-side signIn, it's easier.
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const [state, formAction, isPending] = useActionState(loginUser, undefined);
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-background relative p-4">
@@ -53,12 +24,7 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                <form action={async (formData) => {
-                    setIsLoading(true);
-                    const res = await loginUser(undefined, formData);
-                    if (res) setError(res);
-                    setIsLoading(false);
-                }} className="space-y-4">
+                <form action={formAction} className="space-y-4">
                     <div className="space-y-2">
                         <label className="text-sm font-medium leading-none" htmlFor="email">
                             Email
@@ -97,18 +63,18 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {error && (
+                    {state && (
                         <div className="text-sm text-red-500 bg-red-50 dark:bg-red-900/10 p-2 rounded">
-                            {error}
+                            {state}
                         </div>
                     )}
 
                     <button
-                        disabled={isLoading}
+                        disabled={isPending}
                         type="submit"
                         className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
                     >
-                        {isLoading ? "Logging in..." : "Login"}
+                        {isPending ? "Logging in..." : "Login"}
                     </button>
                 </form>
             </div>

@@ -176,7 +176,7 @@ export async function getFriends(userId?: string) {
             users: targetId,
         }).populate({
             path: "users",
-            select: "name avatarUrl title",
+            select: "name avatarUrl profileImageUrl title",
             match: { _id: { $ne: targetId } }, // Only populate the OTHER user
         });
 
@@ -189,6 +189,7 @@ export async function getFriends(userId?: string) {
                     id: IsPopulatedUser(friend) ? friend._id.toString() : '',
                     name: IsPopulatedUser(friend) ? friend.name : '',
                     avatarUrl: IsPopulatedUser(friend) ? friend.avatarUrl : '',
+                    profileImageUrl: IsPopulatedUser(friend) ? friend.profileImageUrl : '',
                     title: IsPopulatedUser(friend) ? friend.title : ''
                 };
             }
@@ -203,6 +204,6 @@ export async function getFriends(userId?: string) {
 }
 
 // Type guard helper (can be moved if reused)
-function IsPopulatedUser(user: any): user is { _id: any, name: string, avatarUrl?: string, title?: string } {
+function IsPopulatedUser(user: any): user is { _id: any, name: string, avatarUrl?: string, profileImageUrl?: string, title?: string } {
     return user && typeof user.name === 'string';
 }

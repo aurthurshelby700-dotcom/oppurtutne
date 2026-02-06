@@ -38,17 +38,17 @@ function HomeContent() {
             <WelcomeHeader />
 
             <h2 className="text-lg font-semibold mb-4 px-1">
-              {view === 'notifications' ? 'Notifications' : 'Recommended for you'}
+              Recommended for you
             </h2>
 
             {/* Content Area */}
             <div className="min-h-0">
-              {view === 'notifications' ? <NotificationPanel /> : <Feed />}
+              <Feed />
             </div>
           </div>
         </div>
 
-        {/* Right Content (Ads) - Independent Scroll */}
+        {/* Right Content (Ads/Notifications) - Independent Scroll */}
         <div
           className={cn(
             "lg:col-span-4 h-full overflow-y-auto p-6 border-l border-border/0 scrollbar-fade",
@@ -56,10 +56,20 @@ function HomeContent() {
           )}
           onScroll={rightPanel.onScroll}
         >
-          <div className="space-y-6">
-            <AdPanel />
-            <RightPanel />
-          </div>
+          {view === 'notifications' ? (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Notifications</h2>
+                {/* Optional: Add 'Mark all read' button here */}
+              </div>
+              <NotificationPanel />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <AdPanel />
+              <RightPanel />
+            </div>
+          )}
         </div>
       </div>
     </div>

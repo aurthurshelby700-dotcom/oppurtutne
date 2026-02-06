@@ -1,12 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Zap, Clock, Trophy } from "lucide-react";
 import { timeAgo } from "@/lib/date";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-
 import { BookmarkButton } from "@/components/shared/BookmarkButton";
+import { Trophy } from "lucide-react";
 
 interface ContestCardProps {
     item: any;
@@ -15,72 +13,102 @@ interface ContestCardProps {
 export function ContestCard({ item }: ContestCardProps) {
     const router = useRouter();
 
-    const handleClick = () => {
+    const handleNavigate = () => {
         router.push(`/contest/${item._id}`);
     };
 
     const description = item.description || "";
-    const isTruncated = description.length > 250;
-    const displayDescription = isTruncated ? description.substring(0, 250) + "..." : description;
+    const isLongDescription = description.length > 500;
+    const truncatedDescription = isLongDescription
+        ? description.substring(0, 500) + "…"
+        : description;
 
     return (
         <div
-            onClick={handleClick}
-            className="group relative bg-amber-500/5 p-5 rounded-xl border border-amber-500/30 hover:border-amber-500 transition-all cursor-pointer flex flex-col"
+            onClick={handleNavigate}
+            className="group relative bg-card p-6 rounded-2xl border border-border hover:border-contest-accent/50 hover:shadow-2xl hover:shadow-contest-accent/10 transition-all duration-500 cursor-pointer flex flex-col gap-4 h-auto"
         >
-            <div className="flex justify-between items-start mb-3">
-                <div className="flex gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                        <Trophy className="h-6 w-6" />
+            {/* TOP SECTION: Icon + Content Area */}
+            <div className="flex flex-row gap-5">
+                {/* 1. ICON COLUMN (LEFT) - Smaller */}
+                <div className="shrink-0 pt-1">
+                    <div className="h-12 w-12 rounded-xl bg-contest-accent/10 flex items-center justify-center border border-contest-accent/20 group-hover:bg-contest-accent/20 transition-colors duration-500">
+                        <Trophy className="h-5 w-5 text-contest-accent" />
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                            <Clock className="h-3 w-3" />
-                            {timeAgo(item.createdAt)}
+                </div>
+
+                {/* 2. CONTENT COLUMN (RIGHT) */}
+                <div className="flex-1 flex flex-col gap-3 min-w-0">
+                    {/* TOP HEADER: Title & Bookmark/Price */}
+                    <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-extrabold text-xl md:text-2xl text-foreground group-hover:text-contest-accent transition-colors line-clamp-2 leading-tight tracking-tight">
+                                {item.title}
+                            </h3>
+                            {item.jobTitles && item.jobTitles.length > 0 && (
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">
+                                    {item.jobTitles[0]}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Right: Stacked Bookmark/Price Row & Time Below */}
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <div className="flex items-center gap-2">
+                                <div onClick={(e) => e.stopPropagation()} className="p-0.5">
+                                    <BookmarkButton
+                                        itemId={item._id}
+                                        itemType="contest"
+                                        initialSavedState={item.isSaved}
+                                        activeColor="text-contest-accent"
+                                    />
+                                </div>
+                                <div className="bg-muted px-4 py-1.5 rounded-xl border border-border shadow-sm">
+                                    <span className="text-base font-black text-foreground">
+                                        ${item.prize}
+                                    </span>
+                                </div>
+                            </div>
+                            {/* Time under Price */}
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                {timeAgo(item.createdAt)}
+                            </span>
                         </div>
                     </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <BookmarkButton
-                        itemId={item._id}
-                        itemType="contest"
-                        initialSavedState={item.isSaved}
-                        activeColor="text-amber-500" // Orange for contest
-                    />
-                    <span className="text-base font-bold text-foreground bg-background px-4 py-1.5 rounded-full border border-border shadow-sm">
-                        ${item.prize}
-                    </span>
+
+                    {/* DESCRIPTION */}
+                    <div className="text-muted-foreground/80 text-sm leading-relaxed font-medium">
+                        {truncatedDescription}
+                        {isLongDescription && (
+                            <span className="text-contest-accent font-black ml-1 hover:underline underline-offset-4 cursor-pointer">
+                                See more
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <div className="pl-[4rem] mb-4 flex-grow">
-                <p className="text-sm text-muted-foreground">
-                    {displayDescription}{" "}
-                    {isTruncated && (
-                        <Link
-                            href={`/contest/${item._id}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                            }}
-                            className="text-primary font-medium hover:underline ml-1"
-                        >
-                            Show more
-                        </Link>
+            {/* FOOTER: Full-width line via negative margins */}
+            <div className="flex items-center justify-between pt-3 border-t border-border/50 -mx-6 px-6">
+                <div className="flex items-center gap-2 overflow-hidden">
+                    {item.skills && item.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-2 max-h-8 overflow-hidden">
+                            {item.skills.slice(0, 3).map((skill: string) => (
+                                <span key={skill} className="px-3 py-1 rounded-lg bg-secondary/50 text-secondary-foreground text-[10px] font-black uppercase tracking-tighter border border-border/50 shadow-sm whitespace-nowrap">
+                                    {skill}
+                                </span>
+                            ))}
+                        </div>
                     )}
-                </p>
-            </div>
-
-            <div className="pl-[4rem] flex flex-wrap items-center justify-between gap-4 mt-auto">
-                <div className="flex flex-wrap gap-2">
-                    {item.skills?.map((skill: string) => (
-                        <span key={skill} className="px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground text-xs font-medium">
-                            {skill}
-                        </span>
-                    ))}
                 </div>
 
-                <button className="px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap bg-amber-500 text-white hover:bg-amber-600">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate();
+                    }}
+                    className="px-8 py-2 rounded-xl text-xs font-black bg-contest-accent text-white hover:scale-105 active:scale-95 transition-all shadow-xl shadow-contest-accent/20 uppercase tracking-[0.15em] shrink-0"
+                >
                     Participate
                 </button>
             </div>

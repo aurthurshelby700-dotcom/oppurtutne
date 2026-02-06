@@ -10,10 +10,10 @@ export type ServiceData = {
     title: string;
     description: string;
     skills: string[];
+    jobTitles: string[];
     pricingType: "hourly" | "fixed";
     price: number;
     deliveryTime?: string;
-    category: string;
     status: "draft" | "active" | "paused";
 };
 
@@ -31,7 +31,7 @@ export async function createService(data: ServiceData) {
     if (data.title.length > 100) return { error: "Title must be under 100 characters" };
     if (data.description.length < 50) return { error: "Description must be at least 50 characters" };
     if (!data.skills || data.skills.length === 0) return { error: "At least one skill is required" };
-    if (!data.category) return { error: "Category is required" };
+    if (data.jobTitles.length === 0) return { error: "At least one job title is required" };
     if (!data.price || data.price < 0) return { error: "Invalid price" };
 
     try {
@@ -67,7 +67,6 @@ export async function updateService(id: string, data: Partial<ServiceData>) {
 
         if (data.title && data.title.length > 100) return { error: "Title must be under 100 characters" };
         if (data.description && data.description.length < 50) return { error: "Description must be at least 50 characters" };
-        // Category validation could be added here if strictly enforced
 
         const updatedService = await Service.findByIdAndUpdate(id, data, { new: true });
 

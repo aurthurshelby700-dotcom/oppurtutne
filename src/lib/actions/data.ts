@@ -8,10 +8,9 @@ import User from "@/models/User";
 import SavedItem from "@/models/SavedItem";
 import { auth } from "@/auth";
 
-import { SKILL_CATEGORIES } from "@/lib/categories";
 import { MOCK_SERVICES, MOCK_PROJECTS, MOCK_CONTESTS, MOCK_FREELANCERS, MOCK_COURSES } from "@/lib/mock-data";
 
-export async function fetchServices(category?: string, skills?: string[]) {
+export async function fetchServices(jobTitles?: string[], skills?: string[]) {
     const session = await auth();
     if (!session) return [];
 
@@ -19,8 +18,8 @@ export async function fetchServices(category?: string, skills?: string[]) {
         await connectToDatabase();
 
         const query: any = { status: 'active' };
-        if (category) {
-            query.category = category;
+        if (jobTitles && jobTitles.length > 0) {
+            query.jobTitles = { $in: jobTitles };
         }
         if (skills && skills.length > 0) {
             // Using regex for flexible matching or exact match if preferred. 
@@ -62,7 +61,7 @@ export async function fetchServices(category?: string, skills?: string[]) {
     }
 }
 
-export async function fetchProjectsAndContests(category?: string, skills?: string[]) {
+export async function fetchProjectsAndContests(jobTitles?: string[], skills?: string[]) {
     const session = await auth();
     if (!session) return [];
 
@@ -81,8 +80,8 @@ export async function fetchProjectsAndContests(category?: string, skills?: strin
             return JSON.parse(JSON.stringify(combined));
         } else {
             const query: any = { status: 'open' };
-            if (category) {
-                query.category = category;
+            if (jobTitles && jobTitles.length > 0) {
+                query.jobTitles = { $in: jobTitles };
             }
             if (skills && skills.length > 0) {
                 query.skills = { $in: skills.map(s => new RegExp(`^${s}$`, 'i')) };
@@ -97,9 +96,13 @@ export async function fetchProjectsAndContests(category?: string, skills?: strin
             const projects = await Project.find(query).sort({ createdAt: -1 }).lean();
 
             let contests: any[] = [];
-            if (!category) {
-                // Exclude own contests
+            if (!jobTitles || jobTitles.length === 0) {
+                // If filtering by job title, we include contests that match too? 
+                // Currently fetching all contests if no category. 
+                // Let's assume common feed logic:
                 contests = await Contest.find({ status: 'open', createdBy: { $ne: session.user.id } }).sort({ createdAt: -1 }).lean();
+            } else {
+                contests = await Contest.find({ status: 'open', createdBy: { $ne: session.user.id }, jobTitles: { $in: jobTitles } }).sort({ createdAt: -1 }).lean();
             }
 
             let combined = [
@@ -147,7 +150,7 @@ export async function fetchProjectsAndContests(category?: string, skills?: strin
 
 import { unstable_noStore as noStore } from "next/cache";
 
-export async function fetchFreelancers(category?: string, skills?: string[]) {
+export async function fetchFreelancers(jobTitles?: string[], skills?: string[]) {
     noStore();
     try {
         await connectToDatabase();
@@ -162,12 +165,10 @@ export async function fetchFreelancers(category?: string, skills?: string[]) {
         if (skills && skills.length > 0) {
             const regexSkills = skills.map(s => new RegExp(`^${s}$`, 'i'));
             query.skills = { $in: regexSkills };
-        } else if (category) {
-            const categoryData = SKILL_CATEGORIES.find(c => c.name === category);
-            if (categoryData && categoryData.skills.length > 0) {
-                const regexSkills = categoryData.skills.map(s => new RegExp(s, 'i'));
-                query.skills = { $in: regexSkills };
-            }
+        }
+
+        if (jobTitles && jobTitles.length > 0) {
+            query.jobTitles = { $in: jobTitles };
         }
 
         const freelancers = await User.find(query).limit(50).lean();
@@ -205,13 +206,14 @@ export async function fetchFeaturedContest() {
     }
 }
 
-export async function fetchCourses(category?: string, skills?: string[]) {
+export async function fetchCourses(jobTitles?: string[], skills?: string[]) {
     try {
         // Mock implementation for now
         let courses = MOCK_COURSES;
 
-        if (category) {
-            courses = courses.filter(c => c.category === category);
+        if (jobTitles && jobTitles.length > 0) {
+            // courses = courses.filter(c => c.category === category);
+            // Mock courses might not have jobTitles, ignoring for now as it's mock
         }
         if (skills && skills.length > 0) {
             courses = courses.filter(c => c.skills?.some(skill => skills.includes(skill)));
@@ -253,7 +255,7 @@ export async function fetchCourses(category?: string, skills?: string[]) {
 export async function getProjectById(id: string) {
     try {
         await connectToDatabase();
-        const project = await Project.findById(id).populate('createdBy', 'name avatarUrl location rating reviewsCount emailVerified identityVerified paymentVerified').lean();
+        const project = await Project.findById(id).populate('createdBy', 'username avatarUrl profileImageUrl location rating reviewsCount emailVerified identityVerified paymentVerified').lean();
         if (!project) return null;
         return JSON.parse(JSON.stringify(project));
     } catch (error) {
@@ -265,7 +267,7 @@ export async function getProjectById(id: string) {
 export async function getContestById(id: string) {
     try {
         await connectToDatabase();
-        const contest = await Contest.findById(id).populate('createdBy', 'name avatarUrl location rating reviewsCount emailVerified identityVerified paymentVerified').lean();
+        const contest = await Contest.findById(id).populate('createdBy', 'username avatarUrl profileImageUrl location rating reviewsCount emailVerified identityVerified paymentVerified').lean();
         if (!contest) return null;
         return JSON.parse(JSON.stringify(contest));
     } catch (error) {

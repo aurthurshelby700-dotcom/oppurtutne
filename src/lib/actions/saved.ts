@@ -85,7 +85,7 @@ export async function getSavedItems(itemType: string) {
                 break;
             case "freelancer":
                 items = await User.find({ _id: { $in: itemIds } })
-                    .select("name title avatarUrl skills rating reviewsCount location bio")
+                    .select("name username title avatarUrl profileImageUrl skills rating reviewsCount location bio")
                     .lean();
                 break;
             case "course":

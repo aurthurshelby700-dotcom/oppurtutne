@@ -31,6 +31,10 @@
   --input: 240 5.9% 90%;
   --ring: 252 59% 50%;
 
+  /* Semantic Accents */
+  --contest-accent: 38 92% 50%;
+  --project-accent: 252 59% 50%;
+
   --radius: 0.75rem;
 }
 
@@ -65,6 +69,10 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 252 59% 55%;
+
+    /* Semantic Accents (Lighter for Dark Mode) */
+    --contest-accent: 45 93% 47%;
+    --project-accent: 252 59% 55%;
   }
 }
 
@@ -97,6 +105,9 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
+  --color-contest-accent: hsl(var(--contest-accent));
+  --color-project-accent: hsl(var(--project-accent));
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -104,6 +115,7 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+html,
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
@@ -112,37 +124,61 @@ body {
   -moz-osx-font-smoothing: grayscale;
   height: 100%;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
-/* Scrollbar Styling for WebKit */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Global Theme-matching Scrollbar (Minimalist & Autohide) */
+/* Default State: Hidden (Transparent) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
 }
 
-::-webkit-scrollbar-track {
+/* Hover State: Visible */
+*:hover {
+  scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+}
+
+/* Chrome/Webkit Implementation */
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 4px;
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+*:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.3);
 }
 
-/* Auto-hide scrollbar behavior */
-.scrollbar-fade::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  transition: background-color 0.5s ease-in-out;
+/* Explicit 'Active' States (via JS or Hover on custom containers) */
+.custom-scrollbar:hover,
+.custom-scrollbar.scrolling,
+.scrolling {
+  scrollbar-color: hsl(var(--primary) / 0.5) transparent !important;
 }
 
-.scrollbar-fade.scrolling::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.3);
+.custom-scrollbar:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar.scrolling::-webkit-scrollbar-thumb,
+.scrolling::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.5) !important;
 }
 
-.scrollbar-fade.scrolling::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.5);
+/* Legacy support/Override for forced hidden */
+.scrollbar-hidden {
+  scrollbar-color: transparent transparent !important;
+}
+
+.scrollbar-hidden::-webkit-scrollbar-thumb {
+  background: transparent !important;
 }

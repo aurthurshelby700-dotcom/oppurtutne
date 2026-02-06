@@ -81,7 +81,7 @@ export async function getConversations() {
         })
             .populate({
                 path: "participants",
-                select: "name avatarUrl",
+                select: "name avatarUrl profileImageUrl",
                 match: { _id: { $ne: session.user.id } }, // Only get OTHER participant details
             })
             .sort({ updatedAt: -1 })
@@ -99,6 +99,7 @@ export async function getConversations() {
                     id: otherUser._id.toString(),
                     name: otherUser.name,
                     avatarUrl: otherUser.avatarUrl,
+                    profileImageUrl: otherUser.profileImageUrl,
                 } : {
                     id: "unknown",
                     name: "Unknown User",

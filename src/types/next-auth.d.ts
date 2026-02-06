@@ -9,11 +9,25 @@ declare module "next-auth" {
             /** The user's role. */
             role: "freelancer" | "client" | "both" | "pending";
             id: string;
+            username: string;
+            verification?: {
+                email: boolean;
+                mobile: boolean;
+                identity: boolean;
+                payment: boolean;
+            };
         } & DefaultSession["user"]
     }
 
     interface User {
         role: "freelancer" | "client" | "both" | "pending";
+        username: string;
+        verification?: {
+            email: boolean;
+            mobile: boolean;
+            identity: boolean;
+            payment: boolean;
+        };
     }
 }
 
@@ -21,5 +35,12 @@ declare module "next-auth/jwt" {
     interface JWT {
         role: "freelancer" | "client" | "both" | "pending";
         id: string;
+        username: string;
+        verification?: {
+            email: boolean;
+            mobile: boolean;
+            identity: boolean;
+            payment: boolean;
+        };
     }
 }

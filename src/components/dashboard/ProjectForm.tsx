@@ -5,28 +5,28 @@ import { Loader2, DollarSign, Layers, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createProject } from "@/lib/actions/projects"; // We will add updateProject later if needed
 import { useRouter } from "next/navigation";
-import { SKILL_CATEGORIES } from "@/lib/categories";
-import { SkillSelector } from "@/components/ui/SkillSelector";
-
-
+import { JobTitleSkillSelector } from "@/components/shared/JobTitleSkillSelector";
+import { DELIVERABLE_FORMATS } from "@/lib/constants";
 
 interface ProjectFormProps {
     projectToEdit?: any;
     onSuccess?: () => void;
     onCancel?: () => void;
     isModal?: boolean;
-    type?: "PROJECT" | "CONTEST"; // Added prop
+    type?: "project" | "contest";
 }
 
-export function ProjectForm({ projectToEdit, onSuccess, onCancel, isModal = false, type = "PROJECT" }: ProjectFormProps) {
+export function ProjectForm({ projectToEdit, onSuccess, onCancel, isModal = false, type = "project" }: ProjectFormProps) {
     const router = useRouter();
     const [form, setForm] = useState({
         title: "",
-        category: "",
+        jobTitles: [] as string[],
         description: "",
-        budget: "",
+        budgetMin: "",
+        budgetMax: "",
         skills: [] as string[],
-        type: type // Initialize from prop
+        deliverableFormats: [] as string[],
+        type: type
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -36,10 +36,12 @@ export function ProjectForm({ projectToEdit, onSuccess, onCancel, isModal = fals
         if (projectToEdit) {
             setForm({
                 title: projectToEdit.title,
-                category: projectToEdit.category || "",
+                jobTitles: projectToEdit.jobTitles || [],
                 description: projectToEdit.description,
-                budget: projectToEdit.budget.toString(),
+                budgetMin: projectToEdit.budgetMin?.toString() || "",
+                budgetMax: projectToEdit.budgetMax?.toString() || projectToEdit.prizeAmount?.toString() || "",
                 skills: projectToEdit.skills || [],
+                deliverableFormats: projectToEdit.deliverableFormats || [],
                 type: projectToEdit.type || type
             });
         }
@@ -50,19 +52,34 @@ export function ProjectForm({ projectToEdit, onSuccess, onCancel, isModal = fals
 
         // Validation
         if (form.title.length < 5) { setError("Title too short"); return; }
-        if (!form.category) { setError("Category is required"); return; }
+        if (form.jobTitles.length === 0) { setError("At least one job title is required"); return; }
         if (form.description.length < 50) { setError("Description must be at least 50 characters"); return; }
-        if (parseFloat(form.budget) <= 0) { setError("Budget must be greater than 0"); return; }
+
+        const min = parseFloat(form.budgetMin);
+        const max = parseFloat(form.budgetMax);
+
+        if (form.type === 'project') {
+            if (isNaN(min) || min <= 0) { setError("Minimum budget must be greater than 0"); return; }
+            if (isNaN(max) || max <= min) { setError("Maximum budget must be greater than minimum budget"); return; }
+        } else {
+            // Contest
+            if (isNaN(max) || max <= 0) { setError("Prize amount must be greater than 0"); return; }
+        }
+
+        if (form.skills.length === 0) { setError("At least one skill is required"); return; }
+        if (form.type === 'contest' && form.deliverableFormats.length === 0) { setError("At least one deliverable format is required"); return; }
 
         setIsLoading(true);
         try {
             const payload = {
                 title: form.title,
                 description: form.description,
-                budget: parseFloat(form.budget),
+                budgetMin: form.type === 'contest' ? 0 : parseFloat(form.budgetMin),
+                budgetMax: parseFloat(form.budgetMax),
+                jobTitles: form.jobTitles,
                 skills: form.skills,
-                type: form.type,
-                category: form.category
+                deliverableFormats: form.deliverableFormats,
+                type: form.type
             };
 
             const result = await createProject(payload);
@@ -80,88 +97,147 @@ export function ProjectForm({ projectToEdit, onSuccess, onCancel, isModal = fals
     };
 
     return (
-        <div className={cn("space-y-6", isModal ? "" : "bg-card p-8 rounded-xl border border-border")}>
+        <div className={cn("space-y-8", isModal ? "" : "bg-card p-8 rounded-xl border border-border")}>
             {error && (
-                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg border border-destructive/20">
+                <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-xl border border-destructive/20 animate-in fade-in slide-in-from-top-2">
                     {error}
                 </div>
             )}
 
-            {/* Type Switcher REMOVED */}
-
             {/* Title */}
             <div className="space-y-2">
-                <label className="text-sm font-medium">Title <span className="text-destructive">*</span></label>
+                <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Title <span className="text-destructive">*</span></label>
                 <input
                     type="text"
                     maxLength={100}
-                    className="w-full p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                    placeholder={form.type === 'PROJECT' ? "e.g. Build a React Website" : "e.g. Design a Logo for a Coffee Shop"}
+                    className="w-full p-4 rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none font-medium h-14"
+                    placeholder={form.type === 'project' ? "e.g. Build a React Website" : "e.g. Design a Logo for a Coffee Shop"}
                     value={form.title}
                     onChange={e => setForm({ ...form, title: e.target.value })}
                 />
             </div>
 
-            {/* Category */}
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Category <span className="text-destructive">*</span></label>
-                <div className="relative">
-                    <select
-                        className="w-full p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none appearance-none"
-                        value={form.category}
-                        onChange={e => setForm({ ...form, category: e.target.value })}
-                    >
-                        <option value="">Select a Category</option>
-                        {SKILL_CATEGORIES.map(cat => (
-                            <option key={cat.name} value={cat.name}>{cat.name}</option>
-                        ))}
-                    </select>
-                    <Layers className="absolute right-3 top-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                </div>
-            </div>
+            {/* Job Title & Skill Selection */}
+            <JobTitleSkillSelector
+                selectedJobTitles={form.jobTitles}
+                selectedSkills={form.skills}
+                onJobTitlesChange={titles => setForm({ ...form, jobTitles: titles })}
+                onSkillsChange={skills => setForm({ ...form, skills })}
+            />
 
-            {/* Budget */}
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Budget / Prize ($) <span className="text-destructive">*</span></label>
-                <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <input
-                        type="number"
-                        min="1"
-                        className="w-full pl-9 p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
-                        placeholder="500"
-                        value={form.budget}
-                        onChange={e => setForm({ ...form, budget: e.target.value })}
-                    />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Budget */}
+                {form.type === 'project' ? (
+                    <>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Min Budget ($) <span className="text-destructive">*</span></label>
+                            <div className="relative">
+                                <DollarSign className="absolute left-4 top-4.5 h-4 w-4 text-muted-foreground" />
+                                <input
+                                    type="number"
+                                    min="1"
+                                    className="w-full pl-12 p-4 rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none h-14 font-medium"
+                                    placeholder="Min"
+                                    value={form.budgetMin}
+                                    onChange={e => setForm({ ...form, budgetMin: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Max Budget ($) <span className="text-destructive">*</span></label>
+                            <div className="relative">
+                                <DollarSign className="absolute left-4 top-4.5 h-4 w-4 text-muted-foreground" />
+                                <input
+                                    type="number"
+                                    min="1"
+                                    className="w-full pl-12 p-4 rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none h-14 font-medium"
+                                    placeholder="Max"
+                                    value={form.budgetMax}
+                                    onChange={e => setForm({ ...form, budgetMax: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Contest Prize ($) <span className="text-destructive">*</span></label>
+                        <div className="relative">
+                            <DollarSign className="absolute left-4 top-4.5 h-4 w-4 text-muted-foreground" />
+                            <input
+                                type="number"
+                                min="1"
+                                className="w-full pl-12 p-4 rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none h-14 font-medium"
+                                placeholder="500"
+                                value={form.budgetMax}
+                                onChange={e => setForm({ ...form, budgetMax: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-                <label className="text-sm font-medium">Description <span className="text-destructive">*</span></label>
+                <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Description <span className="text-destructive">*</span></label>
                 <textarea
-                    className="w-full p-3 rounded-lg border bg-background h-32 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
-                    placeholder="Describe requirements, deliverables, and expectations..."
+                    className="w-full p-4 rounded-xl border bg-background h-48 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
+                    placeholder="Describe requirements, deliverables, and expectations in detail..."
                     value={form.description}
                     onChange={e => setForm({ ...form, description: e.target.value })}
                 />
                 <div className={cn(
-                    "text-xs text-right transition-colors",
+                    "text-xs text-right transition-colors font-medium",
                     form.description.length < 50 ? "text-amber-500" : "text-muted-foreground"
                 )}>
                     {form.description.length} / 50 characters required
                 </div>
             </div>
 
-            {/* Skills */}
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Required Skills</label>
-                <SkillSelector
-                    selectedSkills={form.skills}
-                    onChange={skills => setForm({ ...form, skills })}
-                    category={form.category}
-                />
-            </div>
+            {/* Deliverable Formats Selection (Contest Only) */}
+            {form.type === 'contest' && (
+                <div className="space-y-6 bg-muted/30 p-6 rounded-2xl border border-border">
+                    <div className="space-y-1">
+                        <label className="text-sm font-black uppercase tracking-widest text-foreground">Deliverable Formats <span className="text-destructive">*</span></label>
+                        <p className="text-xs text-muted-foreground">Select the exact file formats you will accept for entries.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {Object.entries(DELIVERABLE_FORMATS).map(([category, formats]) => (
+                            <div key={category} className="space-y-3">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-border pb-2">
+                                    {category.replace(/_/g, ' ')}
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {formats.map(format => (
+                                        <label
+                                            key={format}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer select-none",
+                                                form.deliverableFormats.includes(format)
+                                                    ? "bg-primary/10 border-primary text-primary shadow-sm"
+                                                    : "bg-background border-border text-muted-foreground hover:border-primary/50"
+                                            )}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="hidden"
+                                                checked={form.deliverableFormats.includes(format)}
+                                                onChange={(e) => {
+                                                    const newFormats = e.target.checked
+                                                        ? [...form.deliverableFormats, format]
+                                                        : form.deliverableFormats.filter(f => f !== format);
+                                                    setForm({ ...form, deliverableFormats: newFormats });
+                                                }}
+                                            />
+                                            <span className="text-xs font-black uppercase">{format}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Footer / Actions */}
             <div className={cn("flex justify-end gap-3", isModal ? "p-6 -mx-6 -mb-6 border-t border-border bg-muted/30 mt-6" : "pt-4 border-t border-border")}>
@@ -182,7 +258,7 @@ export function ProjectForm({ projectToEdit, onSuccess, onCancel, isModal = fals
                     className="px-5 py-2.5 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 shadow-sm"
                 >
                     {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Post {form.type === 'PROJECT' ? "Project" : "Contest"}
+                    Post {form.type === 'project' ? "Project" : "Contest"}
                 </button>
             </div>
         </div>

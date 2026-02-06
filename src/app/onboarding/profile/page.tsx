@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, UserCircle, MapPin, Briefcase } from "lucide-react";
 import { updateUserProfile } from "@/lib/actions/user";
-import { SkillSelector } from "@/components/ui/SkillSelector";
+import { JobTitleSkillSelector } from "@/components/shared/JobTitleSkillSelector";
 
 export default function ProfileSetupPage() {
     const router = useRouter();
@@ -12,7 +12,7 @@ export default function ProfileSetupPage() {
 
     // Form state
     const [name, setName] = useState("");
-    const [title, setTitle] = useState("");
+    const [jobTitles, setJobTitles] = useState<string[]>([]);
     const [bio, setBio] = useState("");
     const [location, setLocation] = useState("");
     const [skills, setSkills] = useState<string[]>([]);
@@ -23,7 +23,7 @@ export default function ProfileSetupPage() {
 
         const result = await updateUserProfile({
             name,
-            title,
+            jobTitles,
             bio,
             location,
             skills
@@ -64,18 +64,13 @@ export default function ProfileSetupPage() {
                         />
                     </div>
 
-                    {/* Title */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium flex items-center gap-2">
-                            <Briefcase className="h-4 w-4" /> Professional Title
-                        </label>
-                        <input
-                            type="text"
-                            required
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            placeholder="e.g. Video Editor, Full Stack Developer..."
+                    {/* Job Titles & Skills */}
+                    <div className="space-y-4">
+                        <JobTitleSkillSelector
+                            selectedJobTitles={jobTitles}
+                            selectedSkills={skills}
+                            onJobTitlesChange={setJobTitles}
+                            onSkillsChange={setSkills}
                         />
                     </div>
 
@@ -108,15 +103,6 @@ export default function ProfileSetupPage() {
                         />
                     </div>
 
-                    {/* Skills */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Skills</label>
-                        <SkillSelector
-                            selectedSkills={skills}
-                            onChange={setSkills}
-                            maxSkills={15}
-                        />
-                    </div>
 
                     <div className="pt-4">
                         <button

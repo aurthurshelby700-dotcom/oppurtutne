@@ -12,32 +12,22 @@ import { ServiceCard } from "@/components/dashboard/ServiceCard";
 import { BookmarkButton } from "@/components/shared/BookmarkButton";
 
 export function Feed() {
-    // 1. Determine Identity & Mode
     const { activeMode, user } = useUser();
-    const isFreelancerMode = activeMode === "freelancer";
-
-    // 2. State for Data
-    const [services, setServices] = useState<any[]>([]);
-    const [items, setItems] = useState<any[]>([]); // Projects
+    const [items, setItems] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 3. Fetch Data Logic
-    // Client sees Services (Talent Marketplace)
-    // Freelancer sees Projects (Job Feed)
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            if (!isFreelancerMode) {
-                // Client Mode -> Fetch Services
-                const data = await fetchServices();
-                setServices(data);
-            } else {
-                // Freelancer Mode -> Fetch Projects
-                const data = await fetchProjectsAndContests();
-                setItems(data);
+            // New API endpoint handles logic based on mode
+            const res = await fetch(`/api/home/recommended?mode=${activeMode}`);
+            const data = await res.json();
+
+            if (data.items) {
+                setItems(data.items);
             }
         } catch (error) {
-            console.error("Error fetching feed:", error);
+            console.error("Error fetching recommended feed:", error);
         } finally {
             setIsLoading(false);
         }
@@ -49,7 +39,6 @@ export function Feed() {
         }
     }, [activeMode, user]);
 
-    // 4. Render Logic
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
@@ -58,57 +47,34 @@ export function Feed() {
         );
     }
 
-    // CLIENT MODE -> SHOW SERVICES
-    if (!isFreelancerMode) {
+    if (items.length === 0) {
         return (
-            <div className="space-y-6">
-                {/* Header removed - handled by parent tabs */}
-
-                {services.length === 0 ? (
-                    <div className="bg-card rounded-xl border border-dashed border-border p-12 text-center">
-                        <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
-                            <Layers className="h-6 w-6" />
-                        </div>
-                        <h3 className="text-lg font-semibold">No services found</h3>
-                        <p className="text-muted-foreground text-sm mt-2">
-                            Talent is currently being onboarded. Check back soon.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-4 pb-4">
-                        {services.map((service) => (
-                            <ServiceCard key={service._id} item={service} />
-                        ))}
-                    </div>
-                )}
+            <div className="bg-card rounded-xl border border-dashed border-border p-12 text-center">
+                <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
+                    <Layers className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-semibold">No recommendations found</h3>
+                <p className="text-muted-foreground text-sm mt-2">
+                    Check back later for new opportunities matching your profile.
+                </p>
             </div>
         );
     }
 
-    // FREELANCER MODE -> SHOW PROJECTS
     return (
         <div className="space-y-6">
-            {/* Header removed - handled by parent tabs */}
-
-            {items.length === 0 ? (
-                <div className="bg-card rounded-xl border border-dashed border-border p-12 text-center">
-                    <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
-                        <Briefcase className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-lg font-semibold">No projects available</h3>
-                    <p className="text-muted-foreground text-sm mt-2">
-                        Check back later for new opportunities matching your skills.
-                    </p>
-                </div>
-            ) : (
-                <div className="space-y-4 pb-4">
-                    {items.map((item) => (
-                        item.type === "CONTEST"
-                            ? <ContestCard key={item._id} item={item} />
-                            : <ProjectCard key={item._id} item={item} />
-                    ))}
-                </div>
-            )}
+            <div className="space-y-4 pb-4">
+                {items.map((item) => {
+                    if (item.type === 'service') {
+                        return <ServiceCard key={item._id} item={item} />;
+                    } else if (item.type === 'contest') {
+                        return <ContestCard key={item._id} item={item} />;
+                    } else {
+                        // Default to Project
+                        return <ProjectCard key={item._id} item={item} />;
+                    }
+                })}
+            </div>
         </div>
     );
 }

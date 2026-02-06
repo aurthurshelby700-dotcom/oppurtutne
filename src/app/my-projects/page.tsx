@@ -10,9 +10,11 @@ import Link from "next/link";
 import { useScrollAware } from "@/hooks/useScrollAware";
 import { AdPanel } from "@/components/dashboard/AdPanel";
 
+
 import { ProjectFormModal } from "@/components/dashboard/ProjectFormModal";
-import { MyProjectCard } from "@/components/dashboard/MyProjectCard";
-import { MyContestCard } from "@/components/dashboard/MyContestCard";
+import { ProjectCard } from "@/components/dashboard/ProjectCard";
+import { ContestCard } from "@/components/dashboard/ContestCard";
+
 
 export default function MyProjectsPage() {
     const { activeMode, user } = useUser();
@@ -62,7 +64,7 @@ export default function MyProjectsPage() {
     }
 
     const filteredItems = projects.filter(p =>
-        activeTab === 'projects' ? (p.type === 'PROJECT' || !p.type) : p.type === 'CONTEST'
+        activeTab === 'projects' ? (p.type === 'project' || !p.type) : p.type === 'contest'
     );
 
     return (
@@ -151,9 +153,9 @@ export default function MyProjectsPage() {
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="grid grid-cols-1 gap-4">
                                     {filteredItems.map((item) => (
-                                        item.type === 'CONTEST'
-                                            ? <MyContestCard key={item._id} item={item} />
-                                            : <MyProjectCard key={item._id} item={item} />
+                                        item.type === 'contest'
+                                            ? <ContestCard key={item._id} item={item} />
+                                            : <ProjectCard key={item._id} item={item} />
                                     ))}
                                 </div>
                             </div>

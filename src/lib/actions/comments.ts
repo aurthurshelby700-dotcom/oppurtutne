@@ -40,7 +40,7 @@ export async function getEntryComments(entryId: string) {
     try {
         await connectToDatabase();
         const comments = await EntryComment.find({ entryId })
-            .populate("authorId", "name avatarUrl")
+            .populate("authorId", "username avatarUrl profileImageUrl")
             .sort({ createdAt: 1 }) // Chronological order
             .lean();
 

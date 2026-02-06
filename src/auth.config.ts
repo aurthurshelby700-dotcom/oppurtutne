@@ -49,13 +49,19 @@ export const authConfig = {
                 token.id = user.id;
                 token.role = user.role;
                 token.name = user.name;
+                token.username = (user as any).username;
                 token.picture = user.image;
+                token.profileImageUrl = (user as any).profileImageUrl;
+                token.verification = (user as any).verification;
             }
             // Update token if session update is triggered (e.g. after role or profile update)
             if (trigger === "update" && session) {
                 if (session.role) token.role = session.role;
                 if (session.name) token.name = session.name;
+                if (session.username) token.username = session.username;
                 if (session.image) token.picture = session.image;
+                if (session.profileImageUrl) token.profileImageUrl = session.profileImageUrl;
+                if (session.verification) token.verification = session.verification;
             }
             return token;
         },
@@ -64,7 +70,10 @@ export const authConfig = {
                 session.user.id = token.id as string;
                 session.user.role = token.role as any;
                 session.user.name = token.name;
+                (session.user as any).username = token.username;
                 session.user.image = token.picture;
+                (session.user as any).profileImageUrl = token.profileImageUrl;
+                (session.user as any).verification = token.verification;
             }
             return session;
         },

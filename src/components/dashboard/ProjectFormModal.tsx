@@ -14,22 +14,22 @@ interface ProjectFormModalProps {
 
 export function ProjectFormModal({ isOpen, onClose, onSuccess, projectToEdit }: ProjectFormModalProps) {
     const [step, setStep] = useState<'selection' | 'form'>(projectToEdit ? 'form' : 'selection');
-    const [selectedType, setSelectedType] = useState<"PROJECT" | "CONTEST">("PROJECT");
+    const [selectedType, setSelectedType] = useState<"project" | "contest">("project");
 
     // Reset state when opening/closing
     useEffect(() => {
         if (isOpen && !projectToEdit) {
             setStep('selection');
-            setSelectedType("PROJECT"); // Default
+            setSelectedType("project"); // Default
         } else if (isOpen && projectToEdit) {
             setStep('form');
-            setSelectedType(projectToEdit.type || "PROJECT");
+            setSelectedType(projectToEdit.type || "project");
         }
     }, [isOpen, projectToEdit]);
 
     if (!isOpen) return null;
 
-    const handleTypeSelect = (type: "PROJECT" | "CONTEST") => {
+    const handleTypeSelect = (type: "project" | "contest") => {
         setSelectedType(type);
         setStep('form');
     };
@@ -59,8 +59,8 @@ export function ProjectFormModal({ isOpen, onClose, onSuccess, projectToEdit }: 
                             </>
                         ) : (
                             <>
-                                {selectedType === 'CONTEST' ? <Trophy className="h-5 w-5 text-amber-500" /> : <FolderPlus className="h-5 w-5 text-primary" />}
-                                {projectToEdit ? "Edit " : "Post a New "}{selectedType === 'CONTEST' ? "Contest" : "Project"}
+                                {selectedType === 'contest' ? <Trophy className="h-5 w-5 text-amber-500" /> : <FolderPlus className="h-5 w-5 text-primary" />}
+                                {projectToEdit ? "Edit " : "Post a New "}{selectedType === 'contest' ? "Contest" : "Project"}
                             </>
                         )}
                     </h2>
@@ -75,7 +75,7 @@ export function ProjectFormModal({ isOpen, onClose, onSuccess, projectToEdit }: 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Project Option */}
                             <div
-                                onClick={() => handleTypeSelect('PROJECT')}
+                                onClick={() => handleTypeSelect('project')}
                                 className="border border-border rounded-xl p-6 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all group flex flex-col gap-4"
                             >
                                 <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -94,7 +94,7 @@ export function ProjectFormModal({ isOpen, onClose, onSuccess, projectToEdit }: 
 
                             {/* Contest Option */}
                             <div
-                                onClick={() => handleTypeSelect('CONTEST')}
+                                onClick={() => handleTypeSelect('contest')}
                                 className="border border-border rounded-xl p-6 hover:border-amber-500 hover:bg-amber-500/5 cursor-pointer transition-all group flex flex-col gap-4"
                             >
                                 <div className="h-12 w-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">

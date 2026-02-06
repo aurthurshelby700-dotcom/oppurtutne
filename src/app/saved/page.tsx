@@ -8,6 +8,7 @@ import { getSavedItems } from "@/lib/actions/saved";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { ContestCard } from "@/components/dashboard/ContestCard";
 import { ServiceCard } from "@/components/dashboard/ServiceCard";
+import { FreelancerCard } from "@/components/shared/FreelancerCard";
 import { AdPanel } from "@/components/dashboard/AdPanel";
 import { RightPanel } from "@/components/dashboard/RightPanel";
 import { BookmarkButton } from "@/components/shared/BookmarkButton"; // Will verify path
@@ -145,47 +146,18 @@ export default function SavedPage() {
                                 {/* Wrap card in relative container for inline cards that don't have built-in bookmark buttons */}
                                 {/* Removed absolute wrapper, integrated into cards below */}
 
-                                {/* Render Card Content */}
                                 {activeTab === "Freelancers" && (
-                                    <div className="bg-card p-6 rounded-xl border border-border hover:border-primary/50 cursor-pointer transition-all flex items-start gap-4">
-                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                            {item.avatarUrl ? <img src={item.avatarUrl} className="h-12 w-12 rounded-full object-cover" /> : <UserCircle className="h-6 w-6" />}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-semibold">{item.name || "Freelancer"}</h3>
-                                                    <p className="text-sm text-muted-foreground">{item.title || "No Title"}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <BookmarkButton
-                                                        itemId={item._id}
-                                                        itemType="freelancer"
-                                                        initialSavedState={true}
-                                                        activeColor="text-purple-500"
-                                                    />
-                                                    <Link href={`/profile/${item._id}`} className="px-4 py-2 bg-secondary text-secondary-foreground text-sm rounded-lg font-medium">
-                                                        Profile
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                {item.skills?.slice(0, 5).map((skill: string) => (
-                                                    <span key={skill} className="text-xs bg-secondary px-2 py-1 rounded-md">{skill}</span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <FreelancerCard item={{ ...item, isSaved: true }} />
                                 )}
 
                                 {activeTab === "Services" && (
-                                    <ServiceCard item={item} />
+                                    <ServiceCard item={{ ...item, isSaved: true }} />
                                 )}
 
                                 {(activeTab === "Projects" || activeTab === "Contests") && (
-                                    item.type === "CONTEST"
-                                        ? <ContestCard item={item} />
-                                        : <ProjectCard item={item} />
+                                    (item.type === "CONTEST" || activeTab === "Contests")
+                                        ? <ContestCard item={{ ...item, isSaved: true }} />
+                                        : <ProjectCard item={{ ...item, isSaved: true }} />
                                 )}
 
                                 {activeTab === "Courses" && (

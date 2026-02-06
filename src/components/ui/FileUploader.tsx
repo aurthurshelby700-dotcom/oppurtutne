@@ -1,7 +1,7 @@
 "use client";
 
 import { CldUploadWidget } from 'next-cloudinary';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { UploadCloud, File, Image as ImageIcon, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ interface FileUploaderProps {
     croppingAspectRatio?: number;
     showSkipCropButton?: boolean;
     allowedFormats?: string[];
+    folder?: string;
 }
 
 export default function FileUploader({
@@ -26,12 +27,24 @@ export default function FileUploader({
     cropping,
     croppingAspectRatio,
     showSkipCropButton,
-    allowedFormats
+    allowedFormats,
+    folder
 }: FileUploaderProps & { children?: React.ReactNode }) {
 
+    const tempResultRef = useRef<any>(null);
+
     const handleSuccess = useCallback((result: any) => {
-        if (result.info && typeof result.info !== 'string') {
+        if (result.event === "success" && result.info && typeof result.info !== 'string') {
+            // Store result but wait for close to trigger callback
+            tempResultRef.current = result;
+        }
+    }, []);
+
+    const handleClose = useCallback(() => {
+        if (tempResultRef.current) {
+            const result = tempResultRef.current;
             onUploadSuccess(result.info.secure_url, result.info);
+            tempResultRef.current = null; // Reset
         }
     }, [onUploadSuccess]);
 
@@ -41,16 +54,18 @@ export default function FileUploader({
         <CldUploadWidget
             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
             options={{
-                sources: ['local', 'url', 'camera'],
+                sources: ['local'],
                 resourceType: resourceType,
                 multiple: false,
                 clientAllowedFormats: allowedFormats || ["png", "jpeg", "jpg"],
                 maxFileSize: 10000000, // 10MB
-                cropping: cropping ?? isImageResourceType, // Enable cropping by default for image resource types
-                croppingAspectRatio: croppingAspectRatio ?? (isImageResourceType ? 1 : undefined), // Default to square if image, can be customized
+                cropping: cropping ?? isImageResourceType,
+                croppingAspectRatio: croppingAspectRatio ?? (isImageResourceType ? 1 : undefined),
                 showSkipCropButton: showSkipCropButton ?? false,
+                folder: folder,
             }}
             onSuccess={handleSuccess}
+            onClose={handleClose}
         >
             {({ open }) => {
                 if (children) {

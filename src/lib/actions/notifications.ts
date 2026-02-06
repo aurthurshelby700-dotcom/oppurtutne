@@ -38,7 +38,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
             receiver: userId,
             status: "pending",
         })
-            .populate("sender", "name avatarUrl")
+            .populate("sender", "name avatarUrl profileImageUrl")
             .sort({ createdAt: -1 })
             .lean();
 
@@ -54,7 +54,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
                         requestId: req._id.toString(),
                         senderId: req.sender._id.toString(),
                         senderName: req.sender.name,
-                        senderAvatar: req.sender.avatarUrl
+                        senderAvatar: req.sender.profileImageUrl || req.sender.avatarUrl
                     }
                 });
             }
@@ -66,7 +66,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
             status: "accepted",
             senderNotified: false,
         })
-            .populate("receiver", "name avatarUrl")
+            .populate("receiver", "name avatarUrl profileImageUrl")
             .sort({ createdAt: -1 })
             .lean();
 
@@ -82,7 +82,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
                         requestId: req._id.toString(),
                         friendId: req.receiver._id.toString(),
                         friendName: req.receiver.name,
-                        friendAvatar: req.receiver.avatarUrl
+                        friendAvatar: req.receiver.profileImageUrl || req.receiver.avatarUrl
                     }
                 });
             }
@@ -196,5 +196,42 @@ export async function getNotifications(): Promise<NotificationItem[]> {
     } catch (error) {
         console.error("Error fetching notifications:", error);
         return [];
+    }
+}
+
+// Create a notification in the database
+export async function createNotification(data: {
+    receiverUsername: string;
+    type: string;
+    message: string;
+    relatedId?: string;
+    relatedType?: string;
+}) {
+    try {
+        await connectToDatabase();
+        const Notification = (await import("@/models/Notification")).default;
+        const User = (await import("@/models/User")).default;
+
+        // Get receiver user ID from username
+        const receiver = await User.findOne({ username: data.receiverUsername });
+        if (!receiver) {
+            console.error(`User not found: ${data.receiverUsername}`);
+            return { error: "User not found" };
+        }
+
+        await Notification.create({
+            receiverId: receiver._id,
+            receiverUsername: data.receiverUsername,
+            type: data.type as any, // Type will be validated by schema
+            message: data.message,
+            relatedId: data.relatedId,
+            relatedType: data.relatedType as any,
+            isRead: false
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error creating notification:", error);
+        return { error: "Failed to create notification" };
     }
 }

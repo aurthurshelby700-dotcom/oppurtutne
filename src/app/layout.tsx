@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 import { UserProvider } from "@/context/UserContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 export default function RootLayout({
   children,
@@ -22,9 +23,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground min-h-screen flex flex-col`}>
         <UserProvider>
-          <AppLayout>
-            {children}
-          </AppLayout>
+          <NotificationProvider>
+            <AppLayout>
+              {children}
+            </AppLayout>
+          </NotificationProvider>
         </UserProvider>
       </body>
     </html>

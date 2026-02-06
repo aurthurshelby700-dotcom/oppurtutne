@@ -8,8 +8,10 @@ import { revalidatePath } from "next/cache";
 
 export async function submitEntry(data: {
     contestId: string;
-    fileUrl: string;
-    format: string;
+    files: {
+        fileUrl: string;
+        format: string;
+    }[];
     description?: string;
 }) {
     const session = await auth();
@@ -24,7 +26,14 @@ export async function submitEntry(data: {
     try {
         await connectToDatabase();
 
-        // Validate Contest and Deliverables
+        // Enforce Email Verification
+        const User = (await import("@/models/User")).default;
+        const user = await User.findById(session.user.id);
+        if (!user?.verification?.email) {
+            return { error: "Please verify your email to participate in contests" };
+        }
+
+        // Validate Contest
         const contest = await Contest.findById(data.contestId);
         if (!contest) {
             return { error: "Contest not found" };
@@ -34,42 +43,46 @@ export async function submitEntry(data: {
             return { error: "This contest is closed" };
         }
 
+        // Validate formats
+        const allowedFormats = (contest.deliverableFormats || []).map(f => f.toLowerCase());
+        for (const file of data.files) {
+            if (!allowedFormats.includes(file.format.toLowerCase())) {
+                return { error: `Format .${file.format} is not allowed for this contest.` };
+            }
+        }
+
         // Prevent self-entry
         if (contest.createdBy.toString() === session.user.id) {
             return { error: "You cannot participate in your own contest" };
         }
 
-        // Validate File Format
-        // Check if the uploaded format is in the allowed deliverables
-        // Note: Format checking should ideally happen on upload, but we double check here.
-        // We assume 'format' passed here is derived from file extension or user selection.
-        // Doing a loose check for now or strict? 
-        // Let's assume the frontend passes the correct format string (e.g. "PNG").
-
-        const isFormatAllowed = contest.deliverables?.some((allowed: string) =>
-            allowed.toLowerCase() === data.format.toLowerCase()
-        );
-
-        if (contest.deliverables && contest.deliverables.length > 0 && !isFormatAllowed) {
-            // Check if it's a "WORD" / "DOC" synonym case
-            const isWordAllowed = contest.deliverables.some(d => ["DOC", "DOCX", "WORD", "DOCS"].includes(d));
-            const isInputWord = ["DOC", "DOCX", "WORD", "DOCS"].includes(data.format);
-
-            if (!isWordAllowed || !isInputWord) {
-                // return { error: `Invalid file format. Allowed: ${contest.deliverables.join(", ")}` };
-                // Relaxing check slightly if backend logic is tricky without file analysis 
-                // But user requirements were strict. 
-                // Let's trust frontend passed a valid format or we assume the fileUrl extension matches.
-            }
+        if (!data.files || data.files.length === 0) {
+            return { error: "At least one file is required" };
         }
 
-        await Entry.create({
+        const entry = await Entry.create({
             contestId: data.contestId,
             freelancerId: session.user.id,
-            fileUrl: data.fileUrl,
-            format: data.format,
+            freelancerUsername: (session.user as any).username || "anonymous",
+            files: data.files.map(f => ({
+                ...f,
+                uploadedAt: new Date()
+            })),
             description: data.description
         });
+
+        // Notify contest holder
+        const { createNotification } = await import("./notifications");
+        const clientUser = await User.findById(contest.createdBy);
+        if (clientUser) {
+            await createNotification({
+                receiverUsername: clientUser.username,
+                type: "contest_update",
+                message: `New entry submitted to your contest: ${contest.title}`,
+                relatedId: data.contestId,
+                relatedType: "contest"
+            });
+        }
 
         revalidatePath(`/contest/${data.contestId}`);
         return { success: true };
@@ -83,7 +96,7 @@ export async function getContestEntries(contestId: string) {
     try {
         await connectToDatabase();
         const entries = await Entry.find({ contestId })
-            .populate('freelancerId', 'name avatarUrl')
+            .populate('freelancerId', 'username avatarUrl profileImageUrl')
             .sort({ createdAt: -1 })
             .lean();
 
@@ -203,7 +216,7 @@ export async function awardEntry(contestId: string, entryId: string) {
             return { error: "Only the contest owner can award the contest" };
         }
 
-        const entry = await Entry.findById(entryId);
+        const entry = await Entry.findById(entryId).populate('freelancerId');
         if (!entry) return { error: "Entry not found" };
 
         console.log(`[SERVER] Awarding entry ${entryId}, current status: ${entry.status}`);
@@ -218,8 +231,32 @@ export async function awardEntry(contestId: string, entryId: string) {
         await contest.save();
         console.log(`[SERVER] Contest ${contestId} closed`);
 
+        // Create Contest Agreement
+        const ContestAgreement = (await import("@/models/ContestAgreement")).default;
+        const freelancerUsername = (entry.freelancerId as any).username;
+
+        await ContestAgreement.create({
+            contestId,
+            entryId,
+            clientUsername: session.user.username || "",
+            freelancerUsername,
+            clientSigned: true, // Client signs immediately when awarding
+            freelancerSigned: false,
+            signedAtClient: new Date()
+        });
+
+        // Notify freelancer
+        const { createNotification } = await import("./notifications");
+        await createNotification({
+            receiverUsername: freelancerUsername,
+            type: "contest_update",
+            message: "🎉 Your entry has been awarded",
+            relatedId: contestId,
+            relatedType: "contest"
+        });
+
         revalidatePath(`/contest/${contest._id}`);
-        return { success: true };
+        return { success: true, showAgreementPopup: true };
     } catch (error) {
         console.error("Error awarding contest:", error);
         return { error: "Failed to award contest" };

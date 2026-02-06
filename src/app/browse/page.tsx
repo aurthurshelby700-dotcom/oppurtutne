@@ -1,247 +1,178 @@
 "use client";
 
-import { FilterSidebar } from "@/components/browse/FilterSidebar";
-import Link from "next/link";
-import { Search, MapPin, Clock, DollarSign, Star, UserCircle, Briefcase, BookOpen } from "lucide-react";
-import { AdPanel } from "@/components/dashboard/AdPanel";
-import { RightPanel } from "@/components/dashboard/RightPanel";
 import { useState, useEffect } from "react";
-import { fetchProjectsAndContests, fetchServices, fetchFreelancers, fetchCourses } from "@/lib/actions/data";
 import { useUser } from "@/context/UserContext";
-import { useScrollAware } from "@/hooks/useScrollAware";
-import { cn } from "@/lib/utils";
+import { ScrollContainer } from "@/components/ui/ScrollContainer";
+import { BrowseSidebar } from "@/components/browse/BrowseSidebar";
+import { BrowseHeader } from "@/components/browse/BrowseHeader";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { ContestCard } from "@/components/dashboard/ContestCard";
 import { ServiceCard } from "@/components/dashboard/ServiceCard";
-import { BookmarkButton } from "@/components/shared/BookmarkButton";
+import { FreelancerCard } from "@/components/shared/FreelancerCard";
+import { useDebounce } from "@/hooks/useDebounce";
+import { Loader2 } from "lucide-react";
 
 export default function BrowsePage() {
-    const { user, activeMode } = useUser();
-    const [activeTab, setActiveTab] = useState("Projects");
-    const [category, setCategory] = useState("");
-    const [skills, setSkills] = useState<string[]>([]);
+    const { activeMode } = useUser();
+
+    // Core State
+    const [type, setType] = useState<string>(activeMode === "client" ? "services" : "projects");
+    const [query, setQuery] = useState("");
+    const [filters, setFilters] = useState<any>({
+        jobTitles: [],
+        skills: [],
+        timePosted: "anytime"
+    });
+
+    // Data State
     const [items, setItems] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
 
-    // Define role-based tabs
-    const tabs = activeMode === "client"
-        ? ["Services", "Freelancers", "Courses", "Projects", "Contests"]
-        : ["Projects", "Contests", "Courses", "Freelancers", "Services"];
+    const debouncedQuery = useDebounce(query, 500);
 
-    // Set default tab based on mode on mount or mode change
+    // Sync default type with activeMode
     useEffect(() => {
-        if (activeMode === "client") {
-            setActiveTab("Services");
-        } else {
-            setActiveTab("Projects");
-        }
+        setType(activeMode === "client" ? "services" : "projects");
     }, [activeMode]);
 
+    // Fetch Logic
     useEffect(() => {
-        let isMounted = true;
-
-        async function loadData() {
+        const fetchResults = async () => {
             setIsLoading(true);
             try {
-                let data = [];
-                if (activeTab === "Projects") {
-                    data = await fetchProjectsAndContests(category, skills);
-                    data = data.filter((i: any) => i.type === 'PROJECT');
-                } else if (activeTab === "Contests") {
-                    data = await fetchProjectsAndContests(category, skills);
-                    data = data.filter((i: any) => i.type === 'CONTEST');
-                } else if (activeTab === "Services") {
-                    data = await fetchServices(category, skills);
-                } else if (activeTab === "Freelancers") {
-                    data = await fetchFreelancers(category, skills);
-                } else if (activeTab === "Courses") {
-                    data = await fetchCourses(category, skills);
+                const params = new URLSearchParams({
+                    type,
+                    query: debouncedQuery,
+                    page: page.toString(),
+                    timePosted: filters.timePosted
+                });
+
+                if (filters.jobTitles?.length) {
+                    params.set("jobTitles", filters.jobTitles.join(","));
                 }
-                if (isMounted) setItems(data);
+                if (filters.skills?.length) {
+                    params.set("skills", filters.skills.join(","));
+                }
+
+                const res = await fetch(`/api/browse?${params.toString()}`);
+                const data = await res.json();
+
+                if (data.results) {
+                    setItems(data.results);
+                    setTotal(data.total || 0);
+                }
             } catch (err) {
-                console.error("Failed to load data", err);
+                console.error("Fetch failed", err);
             } finally {
-                if (isMounted) setIsLoading(false);
+                setIsLoading(false);
             }
-        }
+        };
 
-        loadData();
-        return () => { isMounted = false; };
-    }, [activeTab, category, skills]);
+        fetchResults();
+    }, [type, debouncedQuery, filters, page]);
 
-    // Clear skills when category changes to avoid invalid states
+    // Reset page on filter/type change
     useEffect(() => {
-        setSkills([]);
-    }, [category]);
-
-    // Scroll Awareness
-    const filterPanel = useScrollAware(3000);
-    const resultsPanel = useScrollAware(3000);
+        setPage(1);
+    }, [type, debouncedQuery, filters]);
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex flex-col overflow-hidden bg-background">
-            {/* Search Header - Fixed at Top */}
-            <div className="shrink-0 p-6 border-b border-border bg-background z-10">
-                <div className="flex flex-col md:flex-row justify-between gap-4 items-center max-w-[1920px] mx-auto w-full">
-                    <div className="relative w-full md:max-w-xl">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <input
-                            type="text"
-                            placeholder={`Search ${activeTab.toLowerCase()}...`}
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                        />
-                    </div>
-                    <div className="flex bg-muted p-1 rounded-lg shrink-0">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === tab ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
+        <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-background">
 
-            {/* Main Content Area - Split Panels */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-0 max-w-[1920px] mx-auto w-full h-full">
+            {/* LEFT PANEL: Filters (30%) */}
+            <aside className="hidden md:flex md:w-[30%] lg:w-[25%] flex-col border-r border-border bg-card/30">
+                <ScrollContainer className="flex-1">
+                    <BrowseSidebar
+                        type={type}
+                        filters={filters}
+                        setFilters={setFilters}
+                    />
+                </ScrollContainer>
+            </aside>
 
-                {/* Filter Panel (Left) ~ 3 cols */}
-                <aside
-                    className={cn(
-                        "hidden md:block md:col-span-3 border-r border-border h-full overflow-y-auto bg-card/50 scrollbar-fade",
-                        filterPanel.isScrolling && "scrolling"
-                    )}
-                    onScroll={filterPanel.onScroll}
-                >
-                    <div className="p-6">
-                        <FilterSidebar
-                            selectedCategory={category}
-                            onCategoryChange={setCategory}
-                            selectedSkills={skills}
-                            onSkillsChange={setSkills}
-                        />
-                    </div>
-                </aside>
+            {/* RIGHT PANEL: Results (70%) */}
+            <main className="flex-1 flex flex-col min-w-0 bg-background/50">
+                <ScrollContainer className="flex-1" innerClassName="max-w-6xl mx-auto w-full p-4 md:p-8">
 
-                {/* Results Panel (Center) ~ 6 cols */}
-                <div
-                    className={cn(
-                        "col-span-1 md:col-span-9 h-full overflow-y-auto bg-background scrollbar-fade",
-                        resultsPanel.isScrolling && "scrolling"
-                    )}
-                    onScroll={resultsPanel.onScroll}
-                >
-                    <div className="p-6 space-y-6">
-                        <div className="flex justify-between items-center pb-2">
-                            <h2 className="text-lg font-semibold">
-                                {isLoading ? "Loading..." : `${items.length} Results Found`}
-                            </h2>
-                            <div className="text-sm text-muted-foreground">
-                                Sort by: <span className="font-medium text-foreground cursor-pointer">Newest</span>
-                            </div>
+                    {/* Header: Search & Toggle */}
+                    <BrowseHeader
+                        type={type}
+                        setType={setType}
+                        query={query}
+                        setQuery={setQuery}
+                    />
+
+                    {/* Results Count & Sort */}
+                    <div className="flex items-center justify-between mb-6 animate-in fade-in duration-500">
+                        <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                            {isLoading ? "Fetching..." : `${total} ${type} Found`}
+                        </h2>
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground">Order by</span>
+                            <span className="font-bold text-primary cursor-pointer hover:underline underline-offset-4">Latest</span>
                         </div>
-
-                        {/* Content List */}
-
-                        {isLoading && (
-                            <div className="space-y-4">
-                                {[1, 2, 3].map(i => <div key={i} className="h-40 bg-muted/20 animate-pulse rounded-xl" />)}
-                            </div>
-                        )}
-
-                        {!isLoading && items.length === 0 && (
-                            <div className="text-center py-12 bg-card rounded-xl border border-border">
-                                <p className="text-muted-foreground">No matches found. Try adjusting your filters.</p>
-                            </div>
-                        )}
-
-                        {!isLoading && items.map((item: any) => (
-                            <div key={item._id} className="contents">
-                                {/* Render Card Content Based on Type */}
-
-                                {/* FREELANCER CARD */}
-                                {activeTab === "Freelancers" && (
-                                    <div className="group relative bg-card p-6 rounded-xl border border-border hover:border-primary/50 cursor-pointer transition-all flex items-start gap-4">
-                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                            {item.avatarUrl ? <img src={item.avatarUrl} className="h-12 w-12 rounded-full object-cover" /> : <UserCircle className="h-6 w-6" />}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-semibold group-hover:text-primary transition-colors">{item.name || "Freelancer"}</h3>
-                                                    <p className="text-sm text-muted-foreground">{item.title || "No Title"}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <BookmarkButton
-                                                        itemId={item._id}
-                                                        itemType="freelancer"
-                                                        initialSavedState={item.isSaved}
-                                                        activeColor="text-purple-500"
-                                                    />
-                                                    <Link href={`/profile/${item._id}`} className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        View Profile
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                {item.skills?.slice(0, 5).map((skill: string) => (
-                                                    <span key={skill} className="text-xs bg-secondary px-2 py-1 rounded-md">{skill}</span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* SERVICE CARD */}
-                                {activeTab === "Services" && (
-                                    <ServiceCard item={item} />
-                                )}
-
-                                {/* PROJECT/CONTEST CARDS */}
-                                {(activeTab === "Projects" || activeTab === "Contests") && (
-                                    item.type === "CONTEST"
-                                        ? <ContestCard item={item} />
-                                        : <ProjectCard item={item} />
-                                )}
-
-                                {/* COURSE CARD */}
-                                {activeTab === "Courses" && (
-                                    <div className="group relative bg-card p-6 rounded-xl border border-border hover:border-primary/50 cursor-pointer transition-all flex flex-col">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">{item.title}</h3>
-                                            <div className="flex items-center gap-2">
-                                                <BookmarkButton
-                                                    itemId={item._id}
-                                                    itemType="course"
-                                                    initialSavedState={item.isSaved}
-                                                    activeColor="text-purple-500"
-                                                />
-                                                <div className="font-bold text-foreground">${item.price}</div>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                                            <span className="px-2 py-1 bg-muted rounded">{item.category}</span>
-                                            <span>•</span>
-                                            <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {item.instructor}</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {item.skills?.map((tag: string) => (
-                                                <span key={tag} className="px-2 py-1 bg-secondary text-secondary-foreground rounded-full text-xs font-medium">
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
                     </div>
-                </div>
-            </div >
-        </div >
+
+                    {/* Content List */}
+                    <div className="space-y-4">
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
+                                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                <p className="font-medium animate-pulse">Searching for best matches...</p>
+                            </div>
+                        ) : items.length > 0 ? (
+                            items.map((item, idx) => (
+                                <div
+                                    key={item._id}
+                                    className="animate-in fade-in slide-in-from-bottom-4"
+                                    style={{ animationDelay: `${idx * 50}ms` }}
+                                >
+                                    {type === "projects" && <ProjectCard item={item} />}
+                                    {type === "contests" && <ContestCard item={item} />}
+                                    {type === "services" && <ServiceCard item={item} />}
+                                    {type === "freelancers" && <FreelancerCard item={item} />}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-border rounded-3xl bg-card/20 animate-in zoom-in-95 duration-500">
+                                <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                                    <Search className="h-8 w-8 text-muted-foreground/50" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">
+                                    {type === "courses" ? "Courses Coming Soon!" : "No matches found"}
+                                </h3>
+                                <p className="text-muted-foreground max-w-xs mx-auto">
+                                    {type === "courses"
+                                        ? "We're currently building our learning platform. Stay tuned for exciting courses!"
+                                        : "Try adjusting your filters or search keywords to find what you're looking for."}
+                                </p>
+                                {type !== "courses" && (
+                                    <button
+                                        onClick={() => { setFilters({ skills: [], timePosted: "anytime" }); setQuery(""); }}
+                                        className="mt-6 px-6 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl font-bold transition-all"
+                                    >
+                                        Reset All Filters
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer Gap */}
+                    <div className="h-20" />
+                </ScrollContainer>
+            </main>
+        </div>
+    );
+}
+
+// Sub-icons for Empty State helper
+function Search({ className }: { className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
     );
 }
